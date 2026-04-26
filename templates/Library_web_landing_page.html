@@ -33,12 +33,13 @@
           <li class="nav-item"><a class="nav-link" href="#" onclick="openAboutModal(); return false;">About</a></li>
           <li class="nav-item"><a class="nav-link" href="#news">News</a></li>
           <li class="nav-item"><a class="nav-link" href="#catalog">Leaderboard</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('lbas_site') }}">Books</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('lbas_site') }}">Book Display</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('student_management_site') }}">Student Management</a></li>
           <li class="nav-item dropdown">
             <a id="landingAuthToggle" class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Log in</a>
             <ul id="landingAuthMenu" class="dropdown-menu dropdown-menu-end">
               <li><a id="landingAdminLoginItem" class="dropdown-item" href="{{ url_for('admin_site') }}">Admin Log in</a></li>
-              <li><a id="landingAuthAction" class="dropdown-item" href="{{ url_for('lbas_site') }}?view=signup">Sign Up</a></li>
+              <li><a id="landingAuthAction" class="dropdown-item" href="{{ url_for('student_management_site') }}">Log in</a></li>
             </ul>
           </li>
         </ul>

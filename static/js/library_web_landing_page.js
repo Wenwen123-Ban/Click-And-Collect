@@ -202,10 +202,10 @@
     const landingAction = document.getElementById('landingAuthAction');
 
     if (landingToggle) landingToggle.textContent = isLoggedIn ? 'Account' : 'Log in';
-    if (landingAdminItem) landingAdminItem.style.display = isLoggedIn ? 'none' : '';
+    if (landingAdminItem) landingAdminItem.style.display = '';
     if (landingAction) {
-      landingAction.textContent = isLoggedIn ? 'Log out' : 'Sign Up';
-      landingAction.href = isLoggedIn ? '#' : '/lbas?view=signup';
+      landingAction.textContent = isLoggedIn ? 'Log out' : 'Log in';
+      landingAction.href = isLoggedIn ? '#' : '/student-management';
       landingAction.onclick = isLoggedIn
         ? async function (event) {
             event.preventDefault();

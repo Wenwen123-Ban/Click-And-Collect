@@ -407,17 +407,17 @@ let currentID = null;
       function updateAuthMenus() {
         const isLoggedIn = isAuthenticatedUser();
         const authToggle = document.getElementById("lbasAuthToggle");
-        const adminItem = document.getElementById("lbasAdminLoginItem");
+        const managementItem = document.getElementById("lbasStudentManagementItem");
         const authAction = document.getElementById("lbasAuthAction");
 
         if (authToggle) authToggle.textContent = isLoggedIn ? "Account" : "Log in";
-        if (adminItem) adminItem.style.display = isLoggedIn ? "none" : "";
+        if (managementItem) managementItem.style.display = "";
         if (authAction) {
-          authAction.textContent = isLoggedIn ? "Log out" : "Sign Up";
-          authAction.href = isLoggedIn ? "#" : "#";
+          authAction.textContent = isLoggedIn ? "Log out" : "Log in";
+          authAction.href = isLoggedIn ? "#" : "/student-management";
           authAction.onclick = isLoggedIn
           ? () => { logout(); return false; }
-          : () => { toggleModal("registerModal", true); return false; };
+          : null;
         }
       }
 
@@ -436,61 +436,10 @@ let currentID = null;
         return Boolean(currentID && currentToken);
       }
 
-      async function handleReserveLogin() {
-        const idField = document.getElementById("reserveLoginSchoolID");
-        const passField = document.getElementById("reserveLoginPassword");
-        const errBox = document.getElementById("reserveLoginError");
-        const schoolID = (idField?.value || "").trim();
-        const password = (passField?.value || "").trim();
-
-        if (!schoolID || !password) {
-          if (errBox) {
-            errBox.style.display = "block";
-            errBox.textContent = "School ID and password are required.";
-          }
-          return;
-        }
-
-        try {
-          const res = await fetch("/api/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ school_id: schoolID, password }),
-          });
-          const data = await res.json();
-
-          if (!res.ok || !data.success || !data.token) {
-            if (errBox) {
-              errBox.style.display = "block";
-              errBox.textContent = data.message || "Login failed.";
-            }
-            return;
-          }
-
-          currentID = schoolID;
-          currentToken = data.token;
-          localStorage.setItem("lbas_id", schoolID);
-          localStorage.setItem("lbas_token", data.token);
-          isGuestMode = false;
-          notifySessionAutoLogout();
-          initPortal(data.profile);
-          toggleModal("reserveLoginModal", false);
-          if (pendingReserveBookNo) {
-            const targetBook = pendingReserveBookNo;
-            pendingReserveBookNo = null;
-            reserveBook(targetBook);
-          }
-        } catch (error) {
-          if (errBox) {
-            errBox.style.display = "block";
-            errBox.textContent = "Unable to connect to server.";
-          }
-        }
-      }
-
       async function handleLogin() {
         const id = document.getElementById("school_id_input").value.trim();
-        if (!id) return;
+        const password = document.getElementById("school_password_input")?.value.trim();
+        if (!id || !password) return;
 
         const btn = document.getElementById("loginBtn");
         const err = document.getElementById("loginError");
@@ -504,7 +453,7 @@ let currentID = null;
           const res = await fetch("/api/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ school_id: id, id_only: true }),
+            body: JSON.stringify({ school_id: id, password }),
           });
 
           const data = await res.json();
@@ -516,6 +465,10 @@ let currentID = null;
             localStorage.setItem("lbas_token", currentToken);
             notifySessionAutoLogout();
             initPortal(data.profile);
+            const returnTo = new URLSearchParams(window.location.search).get("return_to");
+            if (returnTo) {
+              window.location.href = decodeURIComponent(returnTo);
+            }
           } else {
             err.style.display = "block";
             if (res.status === 401 && data.message.includes("Pending")) {
@@ -535,7 +488,7 @@ let currentID = null;
           err.style.display = "block";
           errTxt.innerText = "SERVER UNREACHABLE";
         } finally {
-          btn.innerText = "ID LOGIN";
+          btn.innerText = "LOG IN";
           btn.disabled = false;
         }
       }
@@ -840,52 +793,11 @@ let currentID = null;
         if (pendingReservationRequests.has(no)) return;
 
         if (!isAuthenticatedUser()) {
-          pendingReserveBookNo = no;
-          const idField = document.getElementById("reserveLoginSchoolID");
-          const passField = document.getElementById("reserveLoginPassword");
-          const errBox = document.getElementById("reserveLoginError");
-          if (idField) idField.value = "";
-          if (passField) passField.value = "";
-          if (errBox) {
-            errBox.style.display = "none";
-            errBox.textContent = "";
-          }
-          toggleModal("reserveLoginModal", true);
+          const returnTo = encodeURIComponent(`/lbas?reserve=${encodeURIComponent(no)}`);
+          window.location.href = `/student-management?return_to=${returnTo}`;
           return;
         }
-
-        const book = latestBooksByCode[no] || {};
-        pendingReserveBookNo = no;
-        const reserveContactType = document.getElementById("reserveContactType");
-        const reserveContactInput = document.getElementById("reservePhoneNumber");
-        const reserveBorrowerName = document.getElementById("reserveBorrowerName");
-        const reserveBorrowerID = document.getElementById("reserveBorrowerID");
-        if (!reserveContactInput || !reserveBorrowerName || !reserveBorrowerID) {
-          console.error("Reserve modal fields are missing.");
-          return;
-        }
-        reserveBorrowerName.value = document.getElementById("full_name")?.innerText || "";
-        reserveBorrowerID.value = currentID || "";
-        if (reserveContactType) {
-          reserveContactType.value = "phone";
-        }
-        reserveContactInput.value = (currentProfile && currentProfile.phone_number) || "";
-        reserveContactInput.placeholder = "09XXXXXXXXX";
-        document.getElementById("reserveBookCode").value = no;
-        document.getElementById("reserveBookTitle").value = book.title || "Unknown Title";
-        document.getElementById("reserveRequestID").value = `REQ-${Date.now().toString(36).toUpperCase()}`;
-        document.getElementById("reservePickupSchedule").value = "";
-        const reserveTimeField = document.getElementById("reservePickupTime");
-        if (reserveTimeField) reserveTimeField.value = "";
-        document.getElementById("reservePickupSchedule").onchange = async (event) => {
-          const selected = event.target.value;
-          const status = await checkDateRestriction(selected);
-          if (status.restricted) {
-            alert(status.reason || "Selected date is restricted.");
-            event.target.value = "";
-          }
-        };
-        toggleModal("reserveModal", true);
+        submitReserveForm(no);
       }
 
       async function checkDateRestriction(dateValue) {
@@ -900,93 +812,18 @@ let currentID = null;
         }
       }
 
-      function isValidEmail(value) {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-      }
-
-      function bindReserveCredentialType() {
-        const contactType = document.getElementById("reserveContactType");
-        const contactInput = document.getElementById("reservePhoneNumber");
-        if (!contactInput) return;
-        if (!contactType) {
-          contactInput.placeholder = "09XXXXXXXXX";
-          return;
-        }
-        if (contactType.dataset.bound === "true") return;
-        contactType.addEventListener("change", () => {
-          const selectedType = contactType.value;
-          contactInput.value = "";
-          if (selectedType === "phone") {
-            contactInput.placeholder = "09XXXXXXXXX";
-          } else if (selectedType === "email") {
-            contactInput.placeholder = "name@example.com";
-          } else {
-            contactInput.placeholder = "Select a credential type first";
-          }
-        });
-        contactType.dataset.bound = "true";
-      }
-
-      async function submitReserveForm() {
-        const no = pendingReserveBookNo;
+      async function submitReserveForm(bookNo) {
+        const no = bookNo || pendingReserveBookNo;
         if (!no) return;
 
         const reserveButton = document.querySelector(`button[data-book-no="${no}"]`);
-        const borrowerName = document
-          .getElementById("reserveBorrowerName")
-          .value.trim();
-        const pickupDate = document
-          .getElementById("reservePickupSchedule")
-          .value.trim();
-        const pickupTime = document
-          .getElementById("reservePickupTime")
-          .value.trim();
-        const bookCode = document.getElementById("reserveBookCode").value.trim();
-        const bookTitle = document.getElementById("reserveBookTitle").value.trim();
-        const requestID = document.getElementById("reserveRequestID").value.trim();
-        const contactType = (document.getElementById("reserveContactType")?.value || "phone").trim();
-        const contactValue = document.getElementById("reservePhoneNumber").value.trim();
-
-        if (!borrowerName) {
-          alert("Please provide borrower name.");
-          return;
-        }
-        if (!pickupDate) {
-          alert("Please provide a pickup date.");
-          return;
-        }
-        if (!pickupTime) {
-          alert("Please provide a pickup time.");
-          return;
-        }
-        const [hours] = pickupTime.split(":").map(Number);
-        if (hours < 7 || hours >= 17) {
-          alert("Pickup time must be within library hours: 7:00 AM – 5:00 PM");
-          return;
-        }
-        const pickupSchedule = `${pickupDate} ${pickupTime}`;
-        if (!contactType || !contactValue) {
-          alert("Must fill the credentials!");
-          return;
-        }
-        if (contactType === "phone" && !/^\d{11}$/.test(contactValue)) {
-          alert("Phone number must be exactly 11 numbers.");
-          return;
-        }
-        if (contactType === "email" && !isValidEmail(contactValue)) {
-          alert("Please enter a valid email address.");
-          return;
-        }
         if (pendingReservationRequests.has(no)) return;
-
-        const dateStatus = await checkDateRestriction(pickupDate);
-        if (dateStatus.restricted) {
-          alert(dateStatus.reason || "Selected pickup date is restricted.");
-          return;
-        }
 
         pendingReservationRequests.add(no);
         if (reserveButton) reserveButton.disabled = true;
+        const userDisplayName = String(currentProfile?.name || document.getElementById("full_name")?.innerText || currentID || "").trim();
+        const defaultContact = String(currentProfile?.phone_number || currentProfile?.email || "N/A").trim();
+        const contactType = currentProfile?.email ? "email" : "phone";
 
         try {
           const res = await fetch("/api/reserve", {
@@ -998,12 +835,12 @@ let currentID = null;
             body: JSON.stringify({
               book_no: no,
               school_id: currentID,
-              borrower_name: borrowerName,
+              borrower_name: userDisplayName,
               pickup_location: "Main Library",
-              pickup_schedule: pickupSchedule,
-              reservation_note: `${bookCode} - ${bookTitle}`,
-              request_id: requestID,
-              phone_number: contactValue,
+              pickup_schedule: "",
+              reservation_note: "Quick reserve from Book Display",
+              request_id: `REQ-${Date.now().toString(36).toUpperCase()}`,
+              phone_number: defaultContact,
               contact_type: contactType,
             }),
           });
@@ -1037,13 +874,12 @@ let currentID = null;
             expiry: null,
           });
           renderActiveLeases();
-          toggleModal("reserveModal", false);
           pendingReserveBookNo = null;
 
           showStatusPopup(
             "success",
             "Reservation Confirmed",
-            "Please proceed to the librarian desk to claim your book.",
+            "Reservation submitted. Please wait for admin approval and pickup confirmation.",
           );
           await loadReservations();
           loadData();
@@ -1321,10 +1157,6 @@ let currentID = null;
             if (err) err.hidden = true;
           }
         }
-        if (id === "reserveModal" && !show) {
-          const timeField = document.getElementById("reservePickupTime");
-          if (timeField) timeField.value = "";
-        }
       }
 
       function openAccountModal() {
@@ -1454,7 +1286,6 @@ let currentID = null;
         document.getElementById("loginSection").style.display = "flex";
         setStudentLoginStep("welcome");
         closeAccountModal();
-        toggleModal("reserveModal", false);
         document.getElementById("bookContainer").innerHTML = "";
         
       }
@@ -1473,7 +1304,6 @@ let currentID = null;
           console.warn("[LBAS] Bootstrap modal unavailable. Leaderboard profile modal is disabled.");
         }
 
-        bindReserveCredentialType();
         document.getElementById("bookContainer")?.addEventListener("click", (event) => {
           const button = event.target.closest(".reserve-book-btn");
           if (!button) return;
@@ -1521,8 +1351,17 @@ let currentID = null;
         });
 
         const viewParam = new URLSearchParams(window.location.search).get("view");
+        const reserveParam = new URLSearchParams(window.location.search).get("reserve");
+        if (String(viewParam || "").toLowerCase() === "login") {
+          document.getElementById("loginSection").style.display = "flex";
+          document.getElementById("portalSection").style.display = "none";
+          setStudentLoginStep("login");
+        }
         if (String(viewParam || "").toLowerCase() === "signup") {
           toggleModal("registerModal", true);
+        }
+        if (reserveParam && isAuthenticatedUser()) {
+          reserveBook(String(reserveParam).trim());
         }
       }
 
@@ -1534,4 +1373,3 @@ let currentID = null;
       document.getElementById('signUpLevelCollege')?.addEventListener('change', handleSignUpLevelChange);
       document.getElementById('signUpLevelHS')?.addEventListener('change', handleSignUpLevelChange);
       window.submitSignUp = submitSignUp;
-      window.handleReserveLogin = handleReserveLogin;
