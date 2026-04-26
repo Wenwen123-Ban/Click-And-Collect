@@ -839,6 +839,11 @@ def lbas_site():
     return render_template("LBAS.html")
 
 
+@app.route("/student-management")
+def student_management_site():
+    return redirect(url_for("lbas_site", view="login"))
+
+
 @app.route("/tablet")
 def tablet_kiosk():
     return redirect(url_for("lbas_site"))
@@ -1908,13 +1913,18 @@ def api_reserve():
         reason = pickup_date_status.get("reason") or "Selected pickup date is restricted."
         return jsonify({"success": False, "status": "error", "message": reason}), 400
 
-    contact_type = str(data.get("contact_type", "")).strip().lower()
-    contact_value = str(data.get("phone_number", "")).strip()
-    if contact_type not in {"phone", "email"} or not contact_value:
-        return jsonify({"success": False, "status": "error", "message": "Must fill the credentials!"}), 400
-    if contact_type == "phone" and not re.fullmatch(r"\d{11}", contact_value):
+    contact_type = str(data.get("contact_type", "")).strip().lower() or "phone"
+    contact_value = str(data.get("phone_number", "")).strip() or "N/A"
+    if contact_type not in {"phone", "email"}:
+        contact_type = "phone"
+    if contact_value in {"", "N/A"}:
+        contact_value = "N/A"
+    elif contact_type == "phone" and not re.fullmatch(r"\d{11}", contact_value):
+        contact_type = "phone"
+        contact_value = "N/A"
+    if contact_value != "N/A" and contact_type == "phone" and not re.fullmatch(r"\d{11}", contact_value):
         return jsonify({"success": False, "status": "error", "message": "Phone number must be exactly 11 numbers."}), 400
-    if contact_type == "email" and not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", contact_value):
+    if contact_value != "N/A" and contact_type == "email" and not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", contact_value):
         return jsonify({"success": False, "status": "error", "message": "Please provide a valid email address."}), 400
 
     with _db_write_lock:
