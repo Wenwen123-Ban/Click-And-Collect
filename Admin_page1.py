@@ -841,7 +841,12 @@ def lbas_site():
 
 @app.route("/student-management")
 def student_management_site():
-    return redirect(url_for("lbas_site", view="login"))
+    return render_template(
+        "student_management.html",
+        books=run_auto_sync_engine(),
+        users=get_db("users"),
+        admins=get_db("admins"),
+    )
 
 
 @app.route("/tablet")
