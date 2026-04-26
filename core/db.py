@@ -25,6 +25,7 @@ DB_FILES = {
     "home_cards": "home_cards.json",
     "news_posts": "news_posts.json",
     "courses": "courses.json",
+    "proof_borrow_photos": "proof_borrow_photos.json",
 }
 
 _db_write_lock = threading.Lock()

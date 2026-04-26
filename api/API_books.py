@@ -106,8 +106,8 @@ def process_transaction():
         if match:
             match['status'] = 'converted'
         book['status'] = 'borrowed'
-        txs.append({**(match or {}), 'book_no': b_no, 'school_id': sid, 'status': 'borrowed', 'expiry': d.get('return_due_date'), 'approved_by': d.get('approved_by',''), 'reserved_at': (match or {}).get('reserved_at',''), 'date': S['datetime'].now().strftime('%Y-%m-%d %H:%M')})
-        ar = S['get_db']('admin_approval_record'); ar.append({'book_no': b_no, 'school_id': sid, 'request_id': d.get('request_id',''), 'action': 'borrow', 'approved_by': d.get('approved_by',''), 'date': S['datetime'].now().strftime('%Y-%m-%d %H:%M')})
+        txs.append({**(match or {}), 'book_no': b_no, 'school_id': sid, 'status': 'borrowed', 'expiry': d.get('return_due_date'), 'approved_by': d.get('approved_by',''), 'reserved_at': (match or {}).get('reserved_at',''), 'date': S['datetime'].now().strftime('%Y-%m-%d %H:%M'), 'proof_borrow_photo': d.get('proof_borrow_photo',''), 'mobile_scanner_ready': bool(d.get('mobile_scanner_ready', False))})
+        ar = S['get_db']('admin_approval_record'); ar.append({'book_no': b_no, 'school_id': sid, 'request_id': d.get('request_id',''), 'action': 'borrow', 'approved_by': d.get('approved_by',''), 'date': S['datetime'].now().strftime('%Y-%m-%d %H:%M'), 'proof_borrow_photo': d.get('proof_borrow_photo',''), 'mobile_scanner_ready': bool(d.get('mobile_scanner_ready', False))})
         S['save_db']('admin_approval_record', ar)
     elif action == 'return':
         book['status'] = 'available'

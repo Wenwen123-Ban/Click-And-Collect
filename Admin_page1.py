@@ -38,6 +38,7 @@ PROFILE_FOLDER = os.path.join(
 )
 CREATORS_PROFILE_DB = "creators_profiles.json"
 LANDING_UPLOAD_FOLDER = "LandingUploads"
+BORROW_PROOF_MEDIA_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "media", "book_borrow_transaction_photos")
 app.config["UPLOAD_FOLDER"] = PROFILE_FOLDER
 app.config["LANDING_UPLOAD_FOLDER"] = LANDING_UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024
@@ -50,6 +51,10 @@ if not os.path.exists(PROFILE_FOLDER):
 if not os.path.exists(LANDING_UPLOAD_FOLDER):
     os.makedirs(LANDING_UPLOAD_FOLDER)
     logger.info(f"SYSTEM INIT: Created landing uploads storage at ./{LANDING_UPLOAD_FOLDER}")
+
+if not os.path.exists(BORROW_PROOF_MEDIA_FOLDER):
+    os.makedirs(BORROW_PROOF_MEDIA_FOLDER, exist_ok=True)
+    logger.info(f"SYSTEM INIT: Created borrow-proof storage at ./{BORROW_PROOF_MEDIA_FOLDER}")
 
 # Database Map: Full restoration of all required DBs
 DB_FILES = {
@@ -68,6 +73,7 @@ DB_FILES = {
     "home_cards": "home_cards.json",
     "news_posts": "news_posts.json",
     "courses": "courses.json",
+    "proof_borrow_photos": "proof_borrow_photos.json",
 }
 
 ACTIVE_SESSIONS = {}
@@ -806,11 +812,22 @@ def index_gateway():
     return render_template("Library_web_landing_page.html")
 
 
+
+
+@app.route("/Logo/<path:filename>")
+def static_logo(filename):
+    return send_from_directory("Logo", filename)
+
+
+@app.route("/media/book_borrow_transaction_photos/<path:filename>")
+def media_borrow_proof(filename):
+    return send_from_directory(BORROW_PROOF_MEDIA_FOLDER, filename)
+
 @app.route("/admin")
 def admin_site():
     # Pre-load data for dashboard
     return render_template(
-        "admin_dashboard.html",
+        "student_management.html",
         books=run_auto_sync_engine(),
         users=get_db("users"),
         admins=get_db("admins"),
@@ -1835,7 +1852,11 @@ def api_process_trans():
                     or str(data.get("request_id", "")).strip()
                     or generate_request_id(),
                     "approved_by": str(data.get("approved_by", "")).strip() or "System Librarian",
+                    "proof_borrow_photo": str(data.get("proof_borrow_photo", "")).strip(),
+                    "mobile_scanner_ready": bool(data.get("mobile_scanner_ready", False)),
                 }
+                if not approved_record.get("proof_borrow_photo"):
+                    approved_record["proof_borrow_photo"] = f"/media/book_borrow_transaction_photos/{approved_record.get('request_id', generate_request_id())}.jpg"
                 transactions.append(approved_record)
 
                 approval_log = get_db("admin_approval_record")
@@ -1843,6 +1864,19 @@ def api_process_trans():
                     approval_log = []
                 approval_log.append(approved_record)
                 save_db("admin_approval_record", approval_log)
+
+                proof_log = get_db("proof_borrow_photos")
+                if not isinstance(proof_log, list):
+                    proof_log = []
+                proof_log.append({
+                    "request_id": approved_record.get("request_id", ""),
+                    "book_no": approved_record.get("book_no", ""),
+                    "school_id": approved_record.get("school_id", ""),
+                    "proof_borrow_photo": approved_record.get("proof_borrow_photo", ""),
+                    "mobile_scanner_ready": approved_record.get("mobile_scanner_ready", False),
+                    "date": approved_record.get("date", ""),
+                })
+                save_db("proof_borrow_photos", proof_log)
             else:
                 return jsonify({"success": False, "message": "Book Unavailable"}), 400
 
