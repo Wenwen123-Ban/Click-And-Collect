@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>LBAS | Secured Mobile Access</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/LBAS.css') }}">
+
+  </head>
+  <body class="main-wrapper">
+    <!-- LBAS System v8.0 – UI Stabilization & Structural Hardening -->
+    <!-- ===== HEADER SECTION ===== -->
+    <header class="main-header">
+      <div class="header-content">
+        <div class="logo-section">
+            <img src="https://up.yimg.com/ib/th/id/OIP.3wZU8KYQ9wGoRl3eoloR0QHaHa?pid=Api&rs=1&c=1&qlt=95&w=114&h=114"
+                 alt="School Logo"
+                 class="school-logo">
+            <div class="system-title">
+          <h1>Library Borrowing and Assistance System</h1>
+            </div>
+        </div>
+      </div>
+    </header>
+
+    <nav class="navbar navbar-expand-lg custom-nav sticky-top">
+      <div class="container">
+        <a class="navbar-brand fw-bold text-light" href="{{ url_for('index_gateway') }}#home">LBAS</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#lbasLandingNav" aria-controls="lbasLandingNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="lbasLandingNav">
+          <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('index_gateway') }}#home">Home</a></li>
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('index_gateway') }}#news">News</a></li>
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('index_gateway') }}#catalog">Leaderboard</a></li>
+            <li class="nav-item"><a class="nav-link active" aria-current="page" href="{{ url_for('lbas_site') }}">Books</a></li>
+            <li class="nav-item dropdown">
+              <a id="lbasAuthToggle" class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Log in</a>
+              <ul id="lbasAuthMenu" class="dropdown-menu dropdown-menu-end">
+                <li><a id="lbasAdminLoginItem" class="dropdown-item" href="{{ url_for('admin_site') }}">Admin Log in</a></li>
+                <li><a id="lbasAuthAction" class="dropdown-item" href="#registerModal" onclick="toggleModal('registerModal', true); return false;">Sign Up</a></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="network-banner">LBAS System v8.0 – UI Stabilization & Structural Hardening</div>
+
+    <div id="statusModal" class="modal-overlay">
+      <div class="custom-modal">
+        <div class="mb-3">
+          <i
+            id="statusIcon"
+            class="fas fa-check-circle text-success"
+            style="font-size: 3rem"
+          ></i>
+        </div>
+        <h4 id="statusTitle" class="fw-bold">Success</h4>
+        <p id="statusMsg" class="text-muted small">Operation completed.</p>
+        <button
+          class="btn btn-dark w-100 rounded-pill fw-bold"
+          onclick="toggleModal('statusModal', false)"
+        >
+          UNDERSTOOD
+        </button>
+      </div>
+    </div>
+
+
+    <div id="reserveLoginModal" class="modal-overlay">
+      <div class="custom-modal text-start">
+        <h4 class="fw-bold text-center mb-1">Login Required</h4>
+        <p class="text-muted small text-center mb-4">Please login with your ID and password to continue your reservation.</p>
+        <div class="mb-3">
+          <label class="small fw-bold ms-2" for="reserveLoginSchoolID">School ID</label>
+          <input type="text" id="reserveLoginSchoolID" class="form-control rounded-pill bg-light border-0 px-3" placeholder="Enter School ID" />
+        </div>
+        <div class="mb-3">
+          <label class="small fw-bold ms-2" for="reserveLoginPassword">Password</label>
+          <input type="password" id="reserveLoginPassword" class="form-control rounded-pill bg-light border-0 px-3" placeholder="Enter Password" />
+        </div>
+        <div id="reserveLoginError" class="alert alert-danger small py-2" style="display:none;"></div>
+        <button class="btn btn-primary w-100 rounded-pill fw-bold py-2 mb-2" onclick="handleReserveLogin()">LOGIN & CONTINUE</button>
+        <button class="btn btn-outline-secondary w-100 rounded-pill fw-bold py-2" onclick="toggleModal('reserveLoginModal', false)">Cancel</button>
+      </div>
+    </div>
+
+    <div id="reserveModal" class="modal-overlay">
+      <div class="custom-modal text-start">
+        <h4 class="fw-bold text-center mb-1">Reserve Book</h4>
+        <p class="text-muted small text-center mb-4">Complete the reservation request details below.</p>
+        <div class="mb-3">
+          <label class="small fw-bold ms-2">Borrower/User Name</label>
+          <input type="text" id="reserveBorrowerName" class="form-control rounded-pill bg-light border-0 px-3" readonly />
+        </div>
+        <div class="mb-3">
+          <label class="small fw-bold ms-2">User ID</label>
+          <input type="text" id="reserveBorrowerID" class="form-control rounded-pill bg-light border-0 px-3" readonly />
+        </div>
+        <div class="mb-3">
+          <label class="small fw-bold ms-2">Contact Credential <span class="text-danger">*</span></label>
+          <select id="reserveContactType" class="form-select rounded-pill bg-light border-0 px-3 mb-2">
+            <option value="">Select credential type</option>
+            <option value="phone">Input phone number</option>
+            <option value="email">Input email</option>
+          </select>
+          <input type="text" id="reservePhoneNumber" class="form-control rounded-pill bg-light border-0 px-3" placeholder="Select a credential type first" />
+        </div>
+        <div class="mb-3">
+          <label class="small fw-bold ms-2">Book Code</label>
+          <input type="text" id="reserveBookCode" class="form-control rounded-pill bg-light border-0 px-3" readonly />
+        </div>
+        <div class="mb-3">
+          <label class="small fw-bold ms-2">Book Title</label>
+          <input type="text" id="reserveBookTitle" class="form-control rounded-pill bg-light border-0 px-3" readonly />
+        </div>
+        <div class="d-flex gap-2 mb-3">
+          <div style="flex:1">
+            <label class="small fw-bold ms-2">Pickup Date</label>
+            <input type="date" id="reservePickupSchedule" class="form-control rounded-pill bg-light border-0 px-3"/>
+          </div>
+          <div style="flex:1">
+            <label class="small fw-bold ms-2">Pickup Time</label>
+            <input type="time" id="reservePickupTime" class="form-control rounded-pill bg-light border-0 px-3" min="07:00" max="17:00"/>
+          </div>
+        </div>
+        <small class="text-muted ms-2 d-block mb-3">Library hours: 7:00 AM – 5:00 PM</small>
+        <div class="mb-4">
+          <label class="small fw-bold ms-2">Request ID (Auto Generated)</label>
+          <input type="text" id="reserveRequestID" class="form-control rounded-pill bg-light border-0 px-3" readonly />
+        </div>
+        <button class="btn btn-primary w-100 rounded-pill fw-bold py-2 mb-2 shadow-sm" onclick="submitReserveForm()">CONFIRM</button>
+        <button class="btn btn-outline-secondary w-100 rounded-pill fw-bold py-2" onclick="toggleModal('reserveModal', false)">CANCEL</button>
+      </div>
+    </div>
+
+    <div id="registerModal" class="modal-overlay">
+      <div class="custom-modal text-start" id="signUpModal">
+        <h4 class="fw-bold text-center mb-1">Request Account Approval</h4>
+        <p class="text-muted small text-center mb-4">Submit your details for librarian approval.</p>
+
+        <div class="upload-circle" id="signUpPhotoCircle" onclick="document.getElementById('signUpPhotoFile').click()">
+          <i class="fas fa-camera upload-icon" id="uploadIcon"></i>
+          <img id="previewImg" alt="Profile preview" />
+        </div>
+        <small class="signup-photo-hint d-block text-center mb-2">Optional profile photo</small>
+
+        <input type="file" id="signUpPhotoFile" accept="image/*" style="display: none" onchange="previewPhoto(this)" />
+        <hr>
+
+        <div class="mb-3" id="fgSignUpName">
+          <label class="small fw-bold ms-2" for="signUpName">Student Name</label>
+          <input type="text" id="signUpName" class="form-control rounded-pill bg-light border-0 px-3" placeholder="e.g. Juan Dela Cruz" />
+        </div>
+        <div class="mb-3" id="fgSignUpId">
+          <label class="small fw-bold ms-2" for="signUpId">School ID</label>
+          <input type="text" id="signUpId" class="form-control rounded-pill bg-light border-0 px-3" placeholder="Type your School ID manually" />
+          <small class="signup-field-hint">Enter exactly as printed on your ID card.</small>
+        </div>
+        <div class="mb-3" id="fgSignUpLevel">
+          <label class="small fw-bold ms-2">School Level</label>
+          <div class="signup-level-options">
+            <label class="signup-radio-label"><input type="radio" name="signUpLevel" id="signUpLevelCollege" value="college" checked /> College</label>
+            <label class="signup-radio-label"><input type="radio" name="signUpLevel" id="signUpLevelHS" value="highschool" /> High School</label>
+          </div>
+        </div>
+        <div class="mb-3" id="fgSignUpYear">
+          <label class="small fw-bold ms-2" for="signUpYear">Year Level</label>
+          <select id="signUpYear" class="form-control rounded-pill bg-light border-0 px-3">
+            <option value="">Select Year</option><option value="1">1st Year</option><option value="2">2nd Year</option><option value="3">3rd Year</option><option value="4">4th Year</option>
+          </select>
+        </div>
+        <div class="mb-3" id="fgSignUpCourse">
+          <label class="small fw-bold ms-2" for="signUpCourse">Course</label>
+          <select id="signUpCourse" class="form-control rounded-pill bg-light border-0 px-3"><option value="">Loading...</option></select>
+        </div>
+        <div class="mb-3" id="fgSignUpPassword">
+          <label class="small fw-bold ms-2" for="signUpPassword">Password</label>
+          <input type="password" id="signUpPassword" class="form-control rounded-pill bg-light border-0 px-3" placeholder="Minimum 6 characters" />
+        </div>
+        <div class="mb-3" id="fgSignUpConfirm">
+          <label class="small fw-bold ms-2" for="signUpConfirm">Confirm Password</label>
+          <input type="password" id="signUpConfirm" class="form-control rounded-pill bg-light border-0 px-3" placeholder="Re-enter your password" />
+        </div>
+        <div class="mb-3" id="fgSignUpReqNum">
+          <label class="small fw-bold ms-2">Request Number</label>
+          <div id="signUpReqNumDisplay" class="signup-req-num">Auto-generated on submit</div>
+          <small class="signup-field-hint">This number is assigned automatically.</small>
+        </div>
+
+        <div id="signUpError" class="alert alert-danger small mt-2" hidden></div>
+        <div id="signUpSuccess" class="signup-success-msg" hidden>
+          <i class="fas fa-check-circle"></i>
+          <div>
+            <strong>Application Submitted!</strong>
+            <p>Your request number is <span id="signUpSuccessReqNum" class="signup-req-num-highlight"></span>. Please wait for the librarian to review and approve your account. You will not be able to log in until approved.</p>
+          </div>
+        </div>
+
+        <button id="signUpSubmitBtn" class="btn btn-primary w-100 rounded-pill fw-bold py-2 mb-2" onclick="submitSignUp()"><i class="fas fa-paper-plane"></i> Submit Request</button>
+        <button id="signUpCancelBtn" class="btn btn-outline-secondary w-100 rounded-pill fw-bold py-2" onclick="toggleModal('registerModal', false)">Cancel</button>
+        <div id="signUpFooterLink" class="text-center mt-2"><a id="signUpLoginLink" href="#" onclick="toggleModal('registerModal', false);return false;">Already have account?</a></div>
+      </div>
+    </div>
+
+    <div id="loginSection" class="content" style="display: none">
+      <div class="welcome-slider-wrap single-login-wrap">
+        <div id="studentLoginCard" class="login-card">
+        <div class="mb-4">
+          <div
+            class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center shadow-lg"
+            style="width: 60px; height: 60px"
+          >
+            <i class="fas fa-book-reader fa-lg"></i>
+          </div>
+        </div>
+        <h3 class="fw-bold text-dark mb-1">LBAS PORTAL</h3>
+        <p class="text-muted small mb-4">LBAS System v8.0 – UI Stabilization & Structural Hardening</p>
+
+        <div class="mb-3">
+          <input
+            type="text"
+            id="school_id_input"
+            class="form-control form-control-lg text-center bg-light border-0 rounded-pill"
+            placeholder="School ID"
+          />
+        </div>
+        <button
+          id="loginBtn"
+          class="btn btn-dark btn-lg w-100 rounded-pill fw-bold shadow-sm mb-3"
+          onclick="handleLogin()"
+        >
+          ID LOGIN
+        </button>
+
+        <p class="small text-muted mb-2">Registration is managed by the official school database.</p>
+        <button class="btn btn-outline-primary btn-sm rounded-pill fw-bold" onclick="toggleModal('registerModal', true)">
+          Request Account Approval
+        </button>
+
+        <div
+          id="loginError"
+          class="alert alert-danger small mt-3 fw-bold rounded-3 border-0 py-2"
+          style="display: none; font-size: 0.75rem"
+        >
+          <i class="fas fa-exclamation-triangle me-1"></i>
+          <span id="errorText">CREDENTIALS INVALID</span>
+        </div>
+      </div>
+      </div>
+      <div class="mt-4 text-muted small opacity-50">
+        Authorized Access Only | V7.2-BETA
+      </div>
+    </div>
+
+    <div id="portalSection" class="content">
+      <nav class="mobile-nav shadow-sm">
+        <div>
+          <span
+            class="badge bg-primary text-uppercase mb-1"
+            id="user_type_label"
+            style="font-size: 9px; letter-spacing: 0.5px"
+            >USER</span
+          >
+          <h6 class="fw-bold m-0" id="display_name" style="font-size: 0.95rem">
+            User Name
+          </h6>
+        </div>
+        <button
+          class="btn btn-sm btn-light rounded-pill border px-3 fw-bold"
+          onclick="toggleAccount()"
+        >
+          <i class="fas fa-user-circle me-1"></i> Account
+        </button>
+      </nav>
+
+      <div id="accountOverlay" class="account-overlay"></div>
+
+      <div id="accountPanel" class="account-dropdown" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+        <div class="account-modal-header mb-2">
+          <p id="accountTitle" class="fw-bold small text-uppercase mb-0">My Account</p>
+          <button id="closeAccountBtn" type="button" aria-label="Close account panel">✕</button>
+        </div>
+        <p class="small text-muted mb-2 d-md-none"><i class="fas fa-mobile-alt me-1"></i>Swipe right or tap the account card again to close.</p>
+        <div class="d-flex align-items-center mb-3">
+          <img
+            id="user_pic"
+            src=""
+            class="rounded-circle me-3 shadow-sm"
+            style="
+              width: 65px;
+              height: 65px;
+              object-fit: cover;
+              border: 3px solid var(--accent);
+            "
+          />
+          <div>
+            <strong id="full_name" class="d-block" style="font-size: 1.1rem"
+              >Name</strong
+            >
+            <code class="text-muted small fw-bold" id="id_val"></code><br />
+            <span
+              class="badge border mt-1"
+              id="database_source"
+              style="font-size: 9px"
+            ></span>
+          </div>
+        </div>
+        <hr />
+        <p class="fw-bold small mb-2 text-uppercase text-muted" id="activeLeaseLabel">
+          <i class="fas fa-history me-1"></i> Active Leases (<span id="reservationCount">0</span>/5)
+        </p>
+        <div id="activeHistory" class="mb-3"></div>
+        <div class="mb-3">
+          <p class="fw-bold small text-uppercase text-muted mb-2">Settings</p>
+          <label for="booksPerPageDesktop" class="form-label small mb-1">Books per page (Desktop)</label>
+          <input id="booksPerPageDesktop" type="number" class="form-control form-control-sm mb-2" min="6" max="60" value="20" onchange="saveDisplaySettings()" />
+          <label for="booksPerPageMobile" class="form-label small mb-1">Books per page (Mobile)</label>
+          <input id="booksPerPageMobile" type="number" class="form-control form-control-sm" min="4" max="40" value="10" onchange="saveDisplaySettings()" />
+        </div>
+      </div>
+
+      <div class="container py-4">
+        <div id="lbasInfo" class="lbas-definition" style="display: none">
+          <h6 class="fw-bold mb-2">
+            <i class="fas fa-shield-alt me-1"></i> ADMIN OVERRIDE:
+          </h6>
+          <div class="small text-muted">
+            You have Staff privileges. You can browse the catalog here, but
+            management tools are located on the <b>Admin Dashboard</b>.
+          </div>
+        </div>
+
+        <div class="btn-group w-100 mb-4 portal-view-switch" role="group">
+          <button
+            class="btn btn-outline-secondary fw-bold active"
+            id="catalogMenuBtn"
+            onclick="switchPortalView('catalog')"
+          >
+            Catalog
+          </button>
+          <button
+            class="btn btn-outline-secondary fw-bold"
+            id="leaderboardMenuBtn"
+            onclick="switchPortalView('leaderboard')"
+          >
+            Leaderboard
+          </button>
+        </div>
+
+        <div id="catalogSection">
+          <div class="position-relative mb-4">
+            <input
+              type="text"
+              id="searchBar"
+              class="form-control form-control-lg border-0 shadow-sm rounded-pill ps-5"
+              placeholder="Find books..."
+              onkeyup="loadData()"
+            />
+            <i
+              class="fas fa-search position-absolute text-muted"
+              style="left: 20px; top: 18px"
+            ></i>
+          </div>
+
+          <div class="filter-wrapper" id="catFilterList"></div>
+
+          <div id="bookContainer" class="pb-5"></div>
+        </div>
+
+        <div id="leaderboardSection" style="display: none">
+          <div class="card border-0 shadow-sm p-4 leaderboard-card">
+            <h5 class="fw-bold mb-3">
+              <i class="fas fa-trophy text-warning me-2"></i>Top Borrowers This
+              Month
+            </h5>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                  <tr class="small text-uppercase">
+                    <th>Rank</th>
+                    <th>Borrower</th>
+                    <th>Total Borrowed</th>
+                  </tr>
+                </thead>
+                <tbody id="leaderboardBorrowersBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="leaderboardProfileModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+          <div class="modal-header border-0 pb-0">
+            <h5 class="fw-bold"><i class="fas fa-id-card text-primary me-2"></i>Borrower Profile</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-4">
+            <div class="card border-0 bg-light rounded-4">
+              <div class="card-body text-center">
+                <img id="leaderboardProfilePhoto" src="/Profile/default.png" class="rounded-circle shadow-sm mb-3" style="width:90px;height:90px;object-fit:cover;" alt="Profile">
+                <h5 id="leaderboardProfileName" class="fw-bold mb-1">-</h5>
+                <div id="leaderboardProfileId" class="text-muted small mb-3">ID: -</div>
+                <div class="d-flex justify-content-between small"><span class="text-muted">Total borrowed this month</span><span id="leaderboardProfileTotal" class="fw-bold">0</span></div>
+                <div class="d-flex justify-content-between small mt-2"><span class="text-muted">Most borrowed book</span><span id="leaderboardProfileBook" class="fw-bold text-end">No records</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/LBAS.js') }}"></script>
+
+
+
+    <!-- ===== FOOTER SECTION ===== -->
+    <footer class="main-footer">
+      <div class="footer-content">
+        <p>© 2026 Library Borrowing and Assistance System</p>
+        <p>Research Purpose Only</p>
+      </div>
+    </footer>
+  </body>
+</html>
