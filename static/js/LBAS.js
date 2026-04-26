@@ -425,9 +425,9 @@ let currentID = null;
         if (hasShownSessionNotice) return;
         hasShownSessionNotice = true;
         showStatusPopup(
-          "warning",
-          "Session Notice",
-          "For account safety, your session will automatically log out when you leave this page or close the browser.",
+          "success",
+          "Session Active",
+          "You will stay logged in across pages until you tap Log out.",
         );
       }
 
@@ -1341,14 +1341,8 @@ let currentID = null;
         switchPortalView("catalog");
         loadData();
 
-        window.addEventListener("beforeunload", () => {
-          if (!currentToken) return;
-          fetch("/api/logout", {
-            method: "POST",
-            headers: { Authorization: currentToken },
-            keepalive: true,
-          });
-        });
+        // Keep sessions active across page navigation.
+        // Logging out is now explicit via the Log out button only.
 
         const viewParam = new URLSearchParams(window.location.search).get("view");
         const reserveParam = new URLSearchParams(window.location.search).get("reserve");
